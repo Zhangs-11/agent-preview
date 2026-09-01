@@ -1,0 +1,5 @@
+/agent-preview
+/dist/
+/skills/agent-preview-workspace/
+*.log
+.DS_Store

@@ -1,0 +1,17 @@
+{
+  "name": "agent-preview",
+  "description": "Automatically return a temporary browser link after Claude Code creates an HTML page, static site, or other browser-previewable artifact.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Zhang Shuo"
+  },
+  "homepage": "https://github.com/Zhangs-11/agent-preview",
+  "repository": "https://github.com/Zhangs-11/agent-preview",
+  "license": "MIT",
+  "keywords": [
+    "preview",
+    "html",
+    "tunnel",
+    "remote-development"
+  ]
+}

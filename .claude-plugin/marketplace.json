@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "agent-preview",
+  "description": "Agent-first temporary previews for files created on remote development machines.",
+  "owner": {
+    "name": "Zhang Shuo"
+  },
+  "plugins": [
+    {
+      "name": "agent-preview",
+      "description": "Automatically return a temporary browser link after Claude Code creates a browser-previewable artifact.",
+      "source": "./",
+      "homepage": "https://github.com/Zhangs-11/agent-preview"
+    }
+  ]
+}

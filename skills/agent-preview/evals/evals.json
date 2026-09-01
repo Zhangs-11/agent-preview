@@ -1,0 +1,37 @@
+{
+  "skill_name": "agent-preview",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create a self-contained HTML product landing page in the current workspace. I want the finished result, but I am working from another computer and did not separately ask for a preview command.",
+      "expected_output": "The agent verifies the HTML, invokes agent-preview for the exact file, and returns a clickable URL, expiry, and absolute file path.",
+      "files": [],
+      "expectations": [
+        "The agent calls agent-preview only after the HTML is complete.",
+        "The final response contains the raw preview URL, expiry, and artifact path.",
+        "The agent does not ask the user to type --public or download the HTML."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Build a small static dashboard with index.html, styles.css, and app.js under dist/. Once it works, hand it back to me.",
+      "expected_output": "The agent publishes the dist directory rather than only index.html so local assets remain available.",
+      "files": [],
+      "expectations": [
+        "The agent verifies the dashboard before publishing it.",
+        "The agent publishes the dedicated dist directory rather than the repository root.",
+        "The final response contains a clickable preview URL."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Refactor the Go request parser and run its unit tests. There is no browser UI or generated document in this task.",
+      "expected_output": "The skill does not publish a preview because the task has no browser-previewable deliverable.",
+      "files": [],
+      "expectations": [
+        "The agent does not call agent-preview.",
+        "The final response reports the code and test result without inventing a preview URL."
+      ]
+    }
+  ]
+}
