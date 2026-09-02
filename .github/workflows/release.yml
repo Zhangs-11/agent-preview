@@ -53,8 +53,8 @@ jobs:
           go build -trimpath \
             -ldflags "-s -w -X github.com/Zhangs-11/agent-preview/internal/app.Version=${GITHUB_REF_NAME}" \
             -o package/agent-preview ./cmd/agent-preview
-          cp README.md LICENSE package/
-          tar -C package -czf "${archive}" agent-preview README.md LICENSE
+          cp README.md README_EN.md LICENSE package/
+          tar -C package -czf "${archive}" agent-preview README.md README_EN.md LICENSE
       - uses: actions/upload-artifact@v4
         with:
           name: agent-preview-${{ matrix.goos }}-${{ matrix.goarch }}
