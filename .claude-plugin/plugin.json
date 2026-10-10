@@ -1,7 +1,7 @@
 {
   "name": "agent-preview",
   "description": "Automatically return a temporary browser link after Claude Code creates an HTML page, static site, or other browser-previewable artifact.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": {
     "name": "Zhang Shuo"
   },
