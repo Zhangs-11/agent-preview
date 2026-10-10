@@ -17,6 +17,12 @@ import (
 	"github.com/Zhangs-11/agent-preview/internal/tunnel"
 )
 
+// 公网地址可能在隧道进程仍存活时失效（如 localhost.run 免费地址轮换），需要持续从公网检查
+var (
+	tunnelProbeInterval    = time.Minute
+	tunnelProbeMaxFailures = 3
+)
+
 func runWorker(args []string) error {
 	flags := flag.NewFlagSet("__worker", flag.ContinueOnError)
 	requestFile := flags.String("request", "", "worker request path")
@@ -77,6 +83,9 @@ func runWorker(args []string) error {
 	var tunnelProcess *tunnel.Process
 	var tunnelLock *providerLock
 	var tunnelDone <-chan error
+	var tunnelUnreachable <-chan error
+	monitorContext, stopMonitor := context.WithCancel(context.Background())
+	defer stopMonitor()
 	if request.LocalOnly {
 		state.URL = localBaseURL + "/?token=" + request.Token
 		state.Provider = "local"
@@ -89,6 +98,7 @@ func runWorker(args []string) error {
 		state.URL = tunnelProcess.URL + "/?token=" + request.Token
 		state.Provider = tunnelProcess.Provider
 		tunnelDone = tunnelProcess.Done()
+		tunnelUnreachable = monitorTunnel(monitorContext, tunnelProcess.URL, tunnelProbeInterval, tunnelProbeMaxFailures)
 	}
 	state.Status = "ready"
 	if err := writeState(state); err != nil {
@@ -155,8 +165,12 @@ running:
 		case err := <-tunnelDone:
 			if err != nil {
 				finalStatus = "error"
-				finalError = fmt.Errorf("Cloudflare Quick Tunnel stopped: %w", err)
+				finalError = fmt.Errorf("%s tunnel stopped: %w", state.Provider, err)
 			}
+			break running
+		case err := <-tunnelUnreachable:
+			finalStatus = "error"
+			finalError = fmt.Errorf("%s public URL is no longer reachable: %w", state.Provider, err)
 			break running
 		}
 	}
@@ -185,7 +199,10 @@ func startReachableTunnel(ctx context.Context, localURL string) (*tunnel.Process
 	if binary, err := tunnel.FindBinary(); err == nil {
 		process, startErr := tunnel.StartCloudflare(ctx, binary, localURL, 30*time.Second)
 		if startErr == nil {
-			if probeErr := probeTunnel(process.URL, 2, 5*time.Second); probeErr == nil {
+			// Quick Tunnel 域名在打印后约 1 秒才生效，过早查询的 NXDOMAIN 会被本机 DNS 缓存 60 秒，
+			// 所以先等待再查，并让重试覆盖完整的否定缓存时间
+			time.Sleep(3 * time.Second)
+			if probeErr := probeTunnel(process.URL, 14, 5*time.Second, 5*time.Second); probeErr == nil {
 				return process, nil, nil
 			} else {
 				failures = append(failures, fmt.Errorf("cloudflare tunnel is not reachable from this network: %w", probeErr))
@@ -214,7 +231,7 @@ func startReachableTunnel(ctx context.Context, localURL string) (*tunnel.Process
 		failures = append(failures, fmt.Errorf("localhost.run tunnel failed: %w", err))
 		return nil, nil, fmt.Errorf("no public preview provider succeeded: %w", errors.Join(failures...))
 	}
-	if err := probeTunnel(process.URL, 3, 5*time.Second); err != nil {
+	if err := probeTunnel(process.URL, 3, time.Second, 5*time.Second); err != nil {
 		if process.StopAndWait(2 * time.Second) {
 			lock.release()
 		} else {
@@ -226,7 +243,35 @@ func startReachableTunnel(ctx context.Context, localURL string) (*tunnel.Process
 	return process, lock, nil
 }
 
-func probeTunnel(baseURL string, attempts int, timeout time.Duration) error {
+// monitorTunnel 按间隔检查公网健康地址，连续失败达到上限时返回最后一次错误
+func monitorTunnel(ctx context.Context, baseURL string, interval time.Duration, maxFailures int) <-chan error {
+	result := make(chan error, 1)
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		failures := 0
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				err := probeTunnel(baseURL, 1, 0, 10*time.Second)
+				if err == nil {
+					failures = 0
+					continue
+				}
+				failures++
+				if failures >= maxFailures {
+					result <- err
+					return
+				}
+			}
+		}
+	}()
+	return result
+}
+
+func probeTunnel(baseURL string, attempts int, retryDelay, timeout time.Duration) error {
 	client := &http.Client{Timeout: timeout}
 	var lastError error
 	for attempt := 0; attempt < attempts; attempt++ {
@@ -241,7 +286,7 @@ func probeTunnel(baseURL string, attempts int, timeout time.Duration) error {
 		}
 		lastError = err
 		if attempt+1 < attempts {
-			time.Sleep(time.Second)
+			time.Sleep(retryDelay)
 		}
 	}
 	return lastError

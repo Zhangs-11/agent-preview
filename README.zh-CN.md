@@ -69,6 +69,7 @@ Provider：localhost.run
   → 公开健康检查确认用户侧域名真的可访问
   → Cloudflare 不可达：关闭其进程，自动切换 localhost.run
   → 返回实际 Provider、完整链接、文件路径和有效期
+  → 运行期间：每分钟从公网检查一次链接，连续 3 次失败就把预览标为 error
 ```
 
 `localhost.run` 使用系统 SSH 客户端，不需要注册账号或下载额外程序。工具使用自己的 `known_hosts`，不会修改用户的全局 SSH 配置。
@@ -144,6 +145,7 @@ agent-preview stop <preview-id>
 | 问题 | 原因 | 解决方法 |
 |---|---|---|
 | `trycloudflare.com` 无法打开 | 当前网络阻断了 Cloudflare 随机域名 | 工具会验证地址并自动切换 `localhost.run`；查看 JSON 中的 `provider` |
+| `lhr.life` 链接几小时后返回 `no tunnel` | localhost.run 免费域名会定期更换，SSH 连接却一直保持 | 预览会在约 3 分钟内变为 `error`；重新发布，或运行 `agent-preview setup --accept-cloudflare-terms` 让工具优先使用 Cloudflare |
 | `another localhost.run preview is active` | 匿名备用通道在同机复用域名 | `agent-preview list` 找到活动 ID，再运行 `agent-preview stop <id>` |
 | 浏览器返回 `401` | 打开了不含 Token 的裸地址 | 使用 Agent 返回的完整链接；首次验证后 Token 会自动从地址栏移除 |
 | Agent 没有自动返回链接 | Skill 未安装、CLI 不在 `PATH`，或成品类型不受支持 | 运行 `npx skills add Zhangs-11/agent-preview --list` 和 `agent-preview version` |

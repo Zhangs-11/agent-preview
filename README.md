@@ -69,6 +69,7 @@ Artifact completed and verified
   → Public health check confirms the user-facing hostname is reachable
   → Cloudflare unreachable: stop its process and fall back to localhost.run
   → Return the actual provider, complete URL, file path, and expiry
+  → While running: check the public URL every minute; after 3 consecutive failures, mark the preview as error
 ```
 
 `localhost.run` uses the system SSH client and requires no account or additional download. The tool uses its own `known_hosts` file and never modifies the user's global SSH configuration.
@@ -144,6 +145,7 @@ A user-specified TTL is the maximum duration managed by the tool. A free provide
 | Problem | Cause | Fix |
 |---|---|---|
 | A `trycloudflare.com` URL does not open | The current network blocks random Cloudflare hostnames | The tool verifies the URL and automatically switches to `localhost.run`; inspect `provider` in the JSON output |
+| A `lhr.life` URL returns `no tunnel` after a few hours | Free localhost.run hostnames rotate while the SSH connection stays open | The preview changes to `error` within about 3 minutes; publish again, or run `agent-preview setup --accept-cloudflare-terms` so Cloudflare is used first |
 | `another localhost.run preview is active` | Anonymous fallback tunnels on one machine can reuse a hostname | Run `agent-preview list` to find the active ID, then `agent-preview stop <id>` |
 | The browser returns `401` | The URL does not contain the capability token | Open the complete URL returned by the agent; the token is removed from the address bar after the first verification |
 | The agent does not return a URL automatically | The skill is missing, the CLI is not in `PATH`, or the artifact type is unsupported | Run `npx skills add Zhangs-11/agent-preview --list` and `agent-preview version` |

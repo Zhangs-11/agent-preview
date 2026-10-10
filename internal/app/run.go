@@ -79,7 +79,7 @@ func runPublish(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 
-	state, err := waitForReady(request.ID, 90*time.Second)
+	state, err := waitForReady(request.ID, 240*time.Second)
 	if err != nil {
 		_ = requestStop(request.ID)
 		return err

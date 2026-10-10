@@ -32,6 +32,10 @@ agent-preview publish --json --ttl 24h --port <known-port>
 
 If the user requested a duration, translate it to a Go duration such as `72h`. Otherwise use 24 hours. Use `--ttl 0` only when the user explicitly wants the preview to remain until stopped.
 
+## Resend an earlier preview
+
+A preview that was ready earlier may no longer open: free providers can drop the connection or rotate the hostname. The worker checks the public URL every minute and marks the preview `error` after three consecutive failures. Before giving the user a URL from an earlier publish, run `agent-preview list --json` and confirm that preview's `status` is still `ready`. If it is not, publish the artifact again and give the user the new URL.
+
 ## Protect private material
 
 The returned URL is a capability link: anyone who receives the complete link can use it. Do not publish credentials, customer data, production admin pages, private prompts, or artifacts the user said must remain local. A filename scan is not proof that content is safe.
